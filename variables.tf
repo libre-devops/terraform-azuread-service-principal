@@ -1,6 +1,6 @@
 variable "spns" {
   description = "The list of SPNs to be made"
-  type        = list(object({
+  type = list(object({
     spn_name                       = string
     identifier_uris                = list(string)
     description                    = optional(string)
@@ -14,7 +14,7 @@ variable "spns" {
     owners                         = optional(list(string))
     prevent_duplicate_names        = optional(bool, false)
     privacy_statement_url          = optional(string)
-    required_resource_access       = optional(list(object({
+    required_resource_access = optional(list(object({
       resource_app_id = string
       resource_access = list(object({
         id   = string
@@ -23,17 +23,17 @@ variable "spns" {
     })))
     service_management_reference = optional(string)
     sign_in_audience             = optional(string)
-    single_page_application      = optional(object({
+    single_page_application = optional(object({
       redirect_uris = list(string)
     }))
     support_url          = optional(string)
     tags                 = optional(list(string))
     template_id          = optional(string)
     terms_of_service_url = optional(string)
-    web                  = optional(object({
-      redirect_uris  = list(string)
-      logout_url     = optional(string)
-      homepage_url   = optional(string)
+    web = optional(object({
+      redirect_uris = list(string)
+      logout_url    = optional(string)
+      homepage_url  = optional(string)
       implicit_grant = optional(object({
         access_token_issuance_enabled = bool
         id_token_issuance_enabled     = bool
@@ -43,7 +43,7 @@ variable "spns" {
     api = optional(object({
       known_client_applications = list(string)
       mapped_claims_enabled     = optional(bool, false)
-      oauth2_permission_scope  = optional(list(object({
+      oauth2_permission_scope = optional(list(object({
         admin_consent_description  = string
         admin_consent_display_name = string
         id                         = string

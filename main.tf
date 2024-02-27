@@ -1,7 +1,7 @@
 data "azuread_client_config" "current" {}
 
 resource "azuread_application" "spn" {
-  for_each                       = {for k, v in var.spns : k => v}
+  for_each                       = { for k, v in var.spns : k => v }
   display_name                   = each.value.spn_name
   identifier_uris                = each.value.identifier_uris
   description                    = each.value.description
