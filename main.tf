@@ -3,7 +3,7 @@ data "azuread_client_config" "current" {}
 resource "azuread_application" "spn" {
   for_each                       = { for k, v in var.spns : k => v }
   display_name                   = each.value.spn_name
-  identifier_uris                = each.value.identifier_uris
+  identifier_uris                = try(each.value.identifier_uris, null)
   description                    = each.value.description
   device_only_auth_enabled       = each.value.device_only_auth_enabled
   fallback_public_client_enabled = each.value.fallback_public_client_enabled
