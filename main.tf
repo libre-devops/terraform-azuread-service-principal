@@ -133,3 +133,50 @@ resource "azuread_application" "spn" {
     }
   }
 }
+
+resource "azuread_service_principal" "enterprise_app" {
+  for_each = { for k, v in var.spns : k => v if v.create_corresponding_enterprise_app == true }
+
+  client_id    = azuread_application.spn[each.key].client_id
+  use_existing = true
+}
+
+resource "azuread_application_federated_identity_credential" "federated_cred" {
+
+  for_each = { for k, v in var.spns : k => v if v.create_federated_credential == true }
+
+  application_id = azuread_application.spn[each.key].id
+  display_name   = each.value.federated_credential_display_name
+  description    = each.value.federated_credential_description
+  audiences      = each.value.federated_credential_audiences
+  issuer         = each.value.federated_credential_issuer
+  subject        = each.value.federated_credential_subject
+}
+
+resource "azuread_application_password" "client_secret" {
+  for_each = { for k, v in var.spns : k => v if v.create_client_secret == true }
+
+  application_id = azuread_application.spn[each.key].id
+  display_name   = each.value.client_secret_display_name != null ? each.value.client_secret_display_name : "spn-secret-${azuread_service_principal.enterprise_app[each.key].display_name}"
+  start_date     = each.value.client_secret_start_date
+  end_date       = each.value.client_secret_end_date
+}
+
+resource "azuread_service_principal_password" "client_secret" {
+  for_each = { for k, v in var.spns : k => v if v.create_client_secret == true && v.create_corresponding_enterprise_app == true }
+
+  service_principal_id = azuread_service_principal.enterprise_app[each.key].object_id
+
+  display_name = each.value.client_secret_display_name != null ? each.value.client_secret_display_name : "spn-secret-${azuread_service_principal.enterprise_app[each.key].display_name}"
+  start_date   = each.value.client_secret_start_date
+  end_date     = each.value.client_secret_end_date
+}
+
+resource "azurerm_key_vault_secret" "spn_kv_secret" {
+  for_each        = { for k, v in var.spns : k => v if v.create_client_secret == true && v.create_corresponding_enterprise_app == true && v.attempt_put_spn_secret_in_kv == true && v.client_secret_end_date != null }
+  name            = azuread_service_principal_password.client_secret[each.key].display_name
+  value           = azuread_service_principal_password.client_secret[each.key].value
+  key_vault_id    = each.value.key_vault_id
+  content_type    = "text/plain"
+  expiration_date = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", each.value.client_secret_end_date)
+}

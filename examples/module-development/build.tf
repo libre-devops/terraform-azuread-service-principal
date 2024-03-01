@@ -3,7 +3,7 @@ module "azuread_applications" {
 
   spns = [
     {
-      spn_name                       = "ExampleSPN1"
+      spn_name                       = "ExampleSPN2"
       identifier_uris                = ["http://example.com/spn1"]
       description                    = "Example Description for SPN1"
       device_only_auth_enabled       = false
@@ -69,7 +69,15 @@ module "azuread_applications" {
         id_token    = []
         saml2_token = []
       }
+
+      create_corresponding_enterprise_app = true
+      create_client_secret                = true
+      create_federated_credential         = true
+      federated_credential_display_name   = "test"
+      federated_credential_description    = "test2"
+      federated_credential_audiences      = ["api://AzureADTokenExchange"]
+      federated_credential_issuer         = "https://vstoken.dev.azure.com/4a23d149-8cee-4643-a57b-3b3db30e54ce"
+      federated_credential_subject        = "sc://libredevops/libredevops/svp-lbd-uks-prd-mgmt-01"
     }
-    # You can add more SPN configurations here
   ]
 }
