@@ -237,7 +237,7 @@ No modules.
 | <a name="output_saml_metadata_url"></a> [saml\_metadata\_url](#output\_saml\_metadata\_url) | The URL where the service exposes SAML metadata for federation. |
 | <a name="output_service_principal_names"></a> [service\_principal\_names](#output\_service\_principal\_names) | Lists identifier URI(s), copied over from the associated application. |
 | <a name="output_sign_in_audience"></a> [sign\_in\_audience](#output\_sign\_in\_audience) | The Microsoft account types that are supported for the associated application. |
-| <a name="output_spN_client_secret_secret_id"></a> [spN\_client\_secret\_secret\_id](#output\_spN\_client\_secret\_secret\_id) | The id of the secret generated for the service principal resource |
 | <a name="output_spn_app_role_ids"></a> [spn\_app\_role\_ids](#output\_spn\_app\_role\_ids) | A mapping of app role values to app role IDs, as published by the associated application, intended to be useful when referencing app roles in other resources in your configuration. |
+| <a name="output_spn_client_secret_secret_id"></a> [spn\_client\_secret\_secret\_id](#output\_spn\_client\_secret\_secret\_id) | The id of the secret generated for the service principal resource |
 | <a name="output_spn_client_secret_value"></a> [spn\_client\_secret\_value](#output\_spn\_client\_secret\_value) | The secret of the client secret created for the service principal resource |
 | <a name="output_type"></a> [type](#output\_type) | Identifies whether the service principal represents an application or a managed identity, indicating the principal's purpose and capabilities. |

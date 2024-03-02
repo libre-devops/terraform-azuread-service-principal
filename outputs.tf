@@ -96,7 +96,7 @@ output "spn_app_role_ids" {
   description = "A mapping of app role values to app role IDs, as published by the associated application, intended to be useful when referencing app roles in other resources in your configuration."
 }
 
-output "spN_client_secret_secret_id" {
+output "spn_client_secret_secret_id" {
   value       = { for k, sp in azuread_service_principal_password.client_secret : k => sp.key_id }
   description = "The id of the secret generated for the service principal resource"
 }
