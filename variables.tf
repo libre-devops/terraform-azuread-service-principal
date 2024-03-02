@@ -2,7 +2,7 @@ variable "spns" {
   description = "The list of SPNs to be made"
   type = list(object({
     spn_name                            = string
-    identifier_uris                     = optional(list(string))
+    identifier_uris                     = optional(list(string), [])
     create_corresponding_enterprise_app = optional(bool, true)
     create_federated_credential         = optional(bool, false)
     create_client_secret                = optional(bool, false)
