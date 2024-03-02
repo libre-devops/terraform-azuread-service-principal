@@ -38,6 +38,16 @@ output "display_name" {
   description = "The display name of the application associated with this service principal."
 }
 
+output "enterprise_app_application_id" {
+  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.object_id }
+  description = "The application ID  of the enterprise app."
+}
+
+output "enterprise_app_object_id" {
+  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.object_id }
+  description = "The object ID of the service principal."
+}
+
 output "federated_credential_id" {
   value       = { for k, sp in azuread_application_federated_identity_credential.federated_cred : k => sp.credential_id }
   description = "The credential ID of the federated credential"
@@ -69,11 +79,6 @@ output "oauth2_permission_scope_ids" {
 output "oauth2_permission_scopes" {
   value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.oauth2_permission_scopes }
   description = "Lists OAuth 2.0 delegated permission scopes exposed by the associated application."
-}
-
-output "object_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.object_id }
-  description = "The object ID of the service principal."
 }
 
 output "redirect_uris" {
@@ -109,6 +114,11 @@ output "spn_client_secret_secret_id" {
 output "spn_client_secret_value" {
   value       = { for k, sp in azuread_service_principal_password.client_secret : k => sp.value }
   description = "The secret of the client secret created for the service principal resource"
+}
+
+output "spn_object_id" {
+  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_id }
+  description = "The object ID (same as application id) where the associated application is registered."
 }
 
 output "type" {

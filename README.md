@@ -227,13 +227,14 @@ No modules.
 | <a name="output_client_secret_secret_id"></a> [client\_secret\_secret\_id](#output\_client\_secret\_secret\_id) | The id of the secret generated |
 | <a name="output_client_secret_value"></a> [client\_secret\_value](#output\_client\_secret\_value) | The secret of the client secret created |
 | <a name="output_display_name"></a> [display\_name](#output\_display\_name) | The display name of the application associated with this service principal. |
+| <a name="output_enterprise_app_application_id"></a> [enterprise\_app\_application\_id](#output\_enterprise\_app\_application\_id) | The application ID  of the enterprise app. |
+| <a name="output_enterprise_app_object_id"></a> [enterprise\_app\_object\_id](#output\_enterprise\_app\_object\_id) | The object ID of the service principal. |
 | <a name="output_federated_credential_id"></a> [federated\_credential\_id](#output\_federated\_credential\_id) | The credential ID of the federated credential |
 | <a name="output_homepage_url"></a> [homepage\_url](#output\_homepage\_url) | Home page or landing page of the associated application. |
 | <a name="output_id"></a> [id](#output\_id) | The Terraform resource ID for each application. This ID is unique to Terraform and can be used to reference the application resource in other parts of your Terraform configuration. |
 | <a name="output_logout_url"></a> [logout\_url](#output\_logout\_url) | The URL that will be used by Microsoft's authorization service to log out an user. |
 | <a name="output_oauth2_permission_scope_ids"></a> [oauth2\_permission\_scope\_ids](#output\_oauth2\_permission\_scope\_ids) | A mapping of OAuth2.0 permission scope values to scope IDs, as exposed by the associated application. |
 | <a name="output_oauth2_permission_scopes"></a> [oauth2\_permission\_scopes](#output\_oauth2\_permission\_scopes) | Lists OAuth 2.0 delegated permission scopes exposed by the associated application. |
-| <a name="output_object_id"></a> [object\_id](#output\_object\_id) | The object ID of the service principal. |
 | <a name="output_redirect_uris"></a> [redirect\_uris](#output\_redirect\_uris) | Lists URLs where user tokens are sent for sign-in with the associated application. |
 | <a name="output_saml_metadata_url"></a> [saml\_metadata\_url](#output\_saml\_metadata\_url) | The URL where the service exposes SAML metadata for federation. |
 | <a name="output_service_principal_names"></a> [service\_principal\_names](#output\_service\_principal\_names) | Lists identifier URI(s), copied over from the associated application. |
@@ -241,4 +242,5 @@ No modules.
 | <a name="output_spn_app_role_ids"></a> [spn\_app\_role\_ids](#output\_spn\_app\_role\_ids) | A mapping of app role values to app role IDs, as published by the associated application, intended to be useful when referencing app roles in other resources in your configuration. |
 | <a name="output_spn_client_secret_secret_id"></a> [spn\_client\_secret\_secret\_id](#output\_spn\_client\_secret\_secret\_id) | The id of the secret generated for the service principal resource |
 | <a name="output_spn_client_secret_value"></a> [spn\_client\_secret\_value](#output\_spn\_client\_secret\_value) | The secret of the client secret created for the service principal resource |
+| <a name="output_spn_object_id"></a> [spn\_object\_id](#output\_spn\_object\_id) | The object ID (same as application id) where the associated application is registered. |
 | <a name="output_type"></a> [type](#output\_type) | Identifies whether the service principal represents an application or a managed identity, indicating the principal's purpose and capabilities. |
