@@ -221,6 +221,7 @@ No modules.
 |------|-------------|
 | <a name="output_app_role_ids"></a> [app\_role\_ids](#output\_app\_role\_ids) | A mapping of application role display names to their corresponding IDs. This is useful for referencing app roles in other resources within your Terraform configuration. |
 | <a name="output_app_roles"></a> [app\_roles](#output\_app\_roles) | Lists app roles published by the associated application. |
+| <a name="output_application_id"></a> [application\_id](#output\_application\_id) | The application ID where the associated application is registered. |
 | <a name="output_application_tenant_id"></a> [application\_tenant\_id](#output\_application\_tenant\_id) | The tenant ID where the associated application is registered. |
 | <a name="output_client_id"></a> [client\_id](#output\_client\_id) | The Client ID for each application. This is a unique identifier for the application in Azure AD and is used in various authentication and authorization flows. |
 | <a name="output_client_secret_secret_id"></a> [client\_secret\_secret\_id](#output\_client\_secret\_secret\_id) | The id of the secret generated |

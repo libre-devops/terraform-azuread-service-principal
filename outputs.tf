@@ -8,6 +8,11 @@ output "app_roles" {
   description = "Lists app roles published by the associated application."
 }
 
+output "application_id" {
+  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_id }
+  description = "The application ID where the associated application is registered."
+}
+
 output "application_tenant_id" {
   value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_tenant_id }
   description = "The tenant ID where the associated application is registered."
