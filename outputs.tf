@@ -111,11 +111,6 @@ output "spn_client_secret_value" {
   description = "The secret of the client secret created for the service principal resource"
 }
 
-output "spn_object_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_id }
-  description = "The object ID (same as application id) where the associated application is registered."
-}
-
 output "type" {
   value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.type }
   description = "Identifies whether the service principal represents an application or a managed identity, indicating the principal's purpose and capabilities."
