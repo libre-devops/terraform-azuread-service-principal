@@ -165,7 +165,7 @@ resource "azuread_application_password" "client_secret" {
 resource "azuread_service_principal_password" "client_secret" {
   for_each = { for k, v in var.spns : k => v if v.create_client_secret == true && v.create_corresponding_enterprise_app == true }
 
-  service_principal_id = azuread_service_principal.enterprise_app[each.key].object_id
+  service_principal_id = format("/servicePrincipals/%s", azuread_service_principal.enterprise_app[each.key].object_id)
 
   display_name = each.value.client_secret_display_name != null ? each.value.client_secret_display_name : "spn-secret-${azuread_service_principal.enterprise_app[each.key].display_name}"
   start_date   = each.value.client_secret_start_date
