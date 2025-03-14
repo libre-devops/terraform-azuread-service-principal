@@ -8,11 +8,6 @@ output "app_roles" {
   description = "Lists app roles published by the associated application."
 }
 
-output "application_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_id }
-  description = "The application ID where the associated application is registered."
-}
-
 output "application_tenant_id" {
   value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_tenant_id }
   description = "The tenant ID where the associated application is registered."
@@ -114,11 +109,6 @@ output "spn_client_secret_secret_id" {
 output "spn_client_secret_value" {
   value       = { for k, sp in azuread_service_principal_password.client_secret : k => sp.value }
   description = "The secret of the client secret created for the service principal resource"
-}
-
-output "spn_object_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_id }
-  description = "The object ID (same as application id) where the associated application is registered."
 }
 
 output "type" {
