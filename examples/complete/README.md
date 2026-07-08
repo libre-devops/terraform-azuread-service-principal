@@ -246,7 +246,6 @@ module "api_app" {
 | <a name="input_enable_flexible_federated_credentials"></a> [enable\_flexible\_federated\_credentials](#input\_enable\_flexible\_federated\_credentials) | Whether to create the flexible federated identity credential. Off by default because it is a<br/>Microsoft Entra preview feature and the live self-test should not depend on a preview toggle. | `bool` | `false` | no |
 | <a name="input_grant_admin_consent"></a> [grant\_admin\_consent](#input\_grant\_admin\_consent) | Whether to actually grant tenant-wide admin consent for the requested Microsoft Graph<br/>permissions (app role assignments and delegated grants). Left false by default: granting<br/>consent needs elevated Graph permissions (AppRoleAssignment.ReadWrite.All,<br/>Directory.ReadWrite.All) that a plain Application.ReadWrite CI principal does not hold, so the<br/>self-test requests the permissions without consenting. Set true when running as a principal<br/>that can consent. | `bool` | `false` | no |
 | <a name="input_loc"></a> [loc](#input\_loc) | Outfix: short Azure region code used in resource names (for example uks). | `string` | `"uks"` | no |
-| <a name="input_regions"></a> [regions](#input\_regions) | Map of short region codes to Azure region slugs. | `map(string)` | <pre>{<br/>  "eus": "eastus",<br/>  "euw": "westeurope",<br/>  "uks": "uksouth",<br/>  "ukw": "ukwest"<br/>}</pre> | no |
 | <a name="input_short"></a> [short](#input\_short) | Infix: short product code used in resource names. | `string` | `"ldo"` | no |
 
 ## Outputs
