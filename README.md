@@ -1,197 +1,131 @@
+<!--
+  Keep the title and badges OUTSIDE the centered <div>: the Terraform Registry's markdown renderer
+  does not parse markdown inside an HTML block, so a # heading or [![badge]] in the div renders as
+  literal text on the registry. Only the logo (HTML) goes in the div.
+-->
+<div align="center">
+  <a href="https://libredevops.org">
+    <picture>
+      <source media="(prefers-color-scheme: dark)" srcset="https://libredevops.org/assets/libre-devops-white.png">
+      <img alt="Libre DevOps" src="https://libredevops.org/assets/libre-devops-black.png" width="300">
+    </picture>
+  </a>
+</div>
+
+# Terraform Azure AD Service Principal
+
+Create Microsoft Entra (Azure AD) applications and service principals, and configure the whole
+surface around them: client secrets, certificates, federated and flexible federated credentials,
+owners, redirect URIs, published app roles and OAuth2 scopes, requested API permissions, and
+tenant-wide admin consent (with a one-line Microsoft Graph shortcut).
+
+[![CI](https://github.com/libre-devops/terraform-azuread-service-principal/actions/workflows/ci.yml/badge.svg)](https://github.com/libre-devops/terraform-azuread-service-principal/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/libre-devops/terraform-azuread-service-principal?sort=semver&label=release)](https://github.com/libre-devops/terraform-azuread-service-principal/releases/latest)
+[![Terraform Registry](https://img.shields.io/badge/registry-libre--devops-7B42BC?logo=terraform&logoColor=white)](https://registry.terraform.io/namespaces/libre-devops)
+[![License](https://img.shields.io/github/license/libre-devops/terraform-azuread-service-principal)](./LICENSE)
+
+---
+
+## Usage
+
 ```hcl
-data "azuread_client_config" "current" {}
+module "service_principal" {
+  source  = "libre-devops/service-principal/azuread"
+  version = "~> 4.0"
 
-resource "azuread_application" "spn" {
-  for_each                       = { for k, v in var.spns : k => v }
-  display_name                   = each.value.spn_name
-  identifier_uris                = try(each.value.identifier_uris, null)
-  description                    = each.value.description
-  device_only_auth_enabled       = each.value.device_only_auth_enabled
-  fallback_public_client_enabled = each.value.fallback_public_client_enabled
-  group_membership_claims        = each.value.group_membership_claims
-  logo_image                     = each.value.logo_image
-  marketing_url                  = each.value.marketing_url
-  notes                          = each.value.notes
-  oauth2_post_response_required  = each.value.oauth2_post_response_required
-  owners                         = each.value.owners
-  sign_in_audience               = each.value.sign_in_audience
-  prevent_duplicate_names        = each.value.prevent_duplicate_names
-  service_management_reference   = each.value.service_management_reference
-  support_url                    = each.value.support_url
-  tags                           = each.value.tags
-  template_id                    = each.value.template_id
-  terms_of_service_url           = each.value.terms_of_service_url
+  service_principals = {
+    "sp-ldo-uks-dev-app" = {
+      description = "Workload identity for the app."
 
-  dynamic "api" {
-    for_each = each.value.api != null ? [each.value.api] : []
-    content {
-      mapped_claims_enabled          = api.value.mapped_claims_enabled
-      requested_access_token_version = api.value.requested_access_token_version
-      known_client_applications      = api.value.known_client_applications
+      # One client secret (Azure assigns a default expiry when none is given).
+      client_secrets = { default = {} }
 
-      dynamic "oauth2_permission_scope" {
-        for_each = api.value.oauth2_permission_scope != null ? api.value.oauth2_permission_scope : []
-        content {
-          admin_consent_description  = oauth2_permission_scope.value.admin_consent_description
-          admin_consent_display_name = oauth2_permission_scope.value.admin_consent_display_name
-          id                         = oauth2_permission_scope.value.id
-          type                       = oauth2_permission_scope.value.type
-          user_consent_description   = oauth2_permission_scope.value.user_consent_description
-          user_consent_display_name  = oauth2_permission_scope.value.user_consent_display_name
-          value                      = oauth2_permission_scope.value.value
-          enabled                    = oauth2_permission_scope.value.enabled
-        }
-      }
+      # Request Microsoft Graph permissions by name and grant tenant-wide admin consent in one shot.
+      microsoft_graph_application_roles = ["User.Read.All"]
+      microsoft_graph_delegated_scopes  = ["User.Read"]
     }
   }
-
-  dynamic "app_role" {
-    for_each = each.value.app_role != null ? each.value.app_role : []
-    content {
-      allowed_member_types = app_role.value.allowed_member_types
-      description          = app_role.value.description
-      display_name         = app_role.value.display_name
-      id                   = app_role.value.id
-      enabled              = app_role.value.enabled
-    }
-  }
-
-  dynamic "feature_tags" {
-    for_each = each.value.feature_tags != null ? [each.value.feature_tags] : []
-    content {
-      custom_single_sign_on = feature_tags.value.custom_single_sign_on
-      enterprise            = feature_tags.value.enterprise
-      gallery               = feature_tags.value.gallery
-      hide                  = feature_tags.value.hide
-    }
-  }
-
-  dynamic "optional_claims" {
-    for_each = each.value.optional_claims != null ? [each.value.optional_claims] : []
-    content {
-
-      dynamic "access_token" {
-        for_each = optional_claims.value.access_token != null ? optional_claims.value.access_token : []
-        content {
-          name                  = access_token.value.name
-          essential             = access_token.value.essential
-          additional_properties = access_token.value.additional_properties
-          source                = access_token.value.source
-        }
-      }
-
-      dynamic "id_token" {
-        for_each = optional_claims.value.id_token != null ? optional_claims.value.id_token : []
-        content {
-          name                  = id_token.value.name
-          essential             = id_token.value.essential
-          additional_properties = id_token.value.additional_properties
-          source                = id_token.value.source
-        }
-      }
-
-      dynamic "saml2_token" {
-        for_each = optional_claims.value.saml2_token != null ? optional_claims.value.saml2_token : []
-        content {
-          name                  = saml2_token.value.name
-          essential             = saml2_token.value.essential
-          additional_properties = saml2_token.value.additional_properties
-          source                = saml2_token.value.source
-        }
-      }
-    }
-  }
-
-  dynamic "required_resource_access" {
-    for_each = each.value.required_resource_access != null ? each.value.required_resource_access : []
-    content {
-      resource_app_id = required_resource_access.value.resource_app_id
-
-      dynamic "resource_access" {
-        for_each = required_resource_access.value.resource_access != null ? required_resource_access.value.resource_access : []
-        content {
-          id   = resource_access.value.id
-          type = resource_access.value.type
-        }
-      }
-    }
-  }
-
-  dynamic "web" {
-    for_each = each.value.web != null ? [each.value.web] : []
-    content {
-      redirect_uris = web.value.redirect_uris
-      homepage_url  = web.value.homepage_url
-      logout_url    = web.value.logout_url
-
-      dynamic "implicit_grant" {
-        for_each = web.value.implicit_grant != null ? [web.value.implicit_grant] : []
-        content {
-          access_token_issuance_enabled = implicit_grant.value.access_token_issuance_enabled
-          id_token_issuance_enabled     = implicit_grant.value.id_token_issuance_enabled
-        }
-      }
-    }
-  }
-}
-
-resource "azuread_service_principal" "enterprise_app" {
-  for_each = { for k, v in var.spns : k => v if v.create_corresponding_enterprise_app == true }
-
-  client_id    = azuread_application.spn[each.key].client_id
-  use_existing = true
-}
-
-resource "azuread_application_federated_identity_credential" "federated_cred" {
-
-  for_each = { for k, v in var.spns : k => v if v.create_federated_credential == true }
-
-  application_id = azuread_application.spn[each.key].id
-  display_name   = each.value.federated_credential_display_name
-  description    = each.value.federated_credential_description
-  audiences      = each.value.federated_credential_audiences
-  issuer         = each.value.federated_credential_issuer
-  subject        = each.value.federated_credential_subject
-}
-
-resource "azuread_application_password" "client_secret" {
-  for_each = { for k, v in var.spns : k => v if v.create_client_secret == true }
-
-  application_id = azuread_application.spn[each.key].id
-  display_name   = each.value.client_secret_display_name != null ? each.value.client_secret_display_name : "spn-secret-${azuread_service_principal.enterprise_app[each.key].display_name}"
-  start_date     = each.value.client_secret_start_date
-  end_date       = each.value.client_secret_end_date
-}
-
-resource "azuread_service_principal_password" "client_secret" {
-  for_each = { for k, v in var.spns : k => v if v.create_client_secret == true && v.create_corresponding_enterprise_app == true }
-
-  service_principal_id = format("/servicePrincipals/%s", azuread_service_principal.enterprise_app[each.key].object_id)
-
-  display_name = each.value.client_secret_display_name != null ? each.value.client_secret_display_name : "spn-secret-${azuread_service_principal.enterprise_app[each.key].display_name}"
-  start_date   = each.value.client_secret_start_date
-  end_date     = each.value.client_secret_end_date
-}
-
-resource "azurerm_key_vault_secret" "spn_kv_secret" {
-  for_each        = { for k, v in var.spns : k => v if v.create_client_secret == true && v.create_corresponding_enterprise_app == true && v.attempt_put_spn_secret_in_kv == true && v.client_secret_end_date != null }
-  name            = azuread_service_principal_password.client_secret[each.key].display_name
-  value           = azuread_service_principal_password.client_secret[each.key].value
-  key_vault_id    = each.value.key_vault_id
-  content_type    = "text/plain"
-  expiration_date = formatdate("YYYY-MM-DD'T'HH:mm:ss'Z'", each.value.client_secret_end_date)
 }
 ```
+
+## Design
+
+The base object is `azuread_application_registration` composed with the granular sub-resources
+(`azuread_application_api_access`, `_app_role`, `_permission_scope`, `_owner`, `_redirect_uris`,
+`_identifier_uri`, `_fallback_public_client`, `_known_clients`, `_optional_claims`,
+`_pre_authorized`), rather than the monolithic `azuread_application`. That is the drift-resistant,
+composable path and the only one compatible with the owner and redirect-URI resources. As a
+result a few application-only knobs are intentionally not exposed (`device_only_auth_enabled`,
+`logo_image`, `oauth2_post_response_required`, `prevent_duplicate_names`, application `tags`, and
+the gallery `template_id`).
+
+## Required permissions
+
+The principal running Terraform needs Microsoft Graph `Application.ReadWrite.All` (or
+`Application.ReadWrite.OwnedBy`) to manage applications and service principals. Granting admin
+consent additionally needs `AppRoleAssignment.ReadWrite.All` (application permissions) and
+`Directory.ReadWrite.All` (delegated grants), which is why the complete example leaves
+`grant_admin_consent` off by default. See also the companion
+[terraform-azuread-role-assignment](https://github.com/libre-devops/terraform-azuread-role-assignment)
+module for Entra directory roles.
+
+## Examples
+
+- [`examples/minimal`](./examples/minimal) - the smallest valid call: one application, its service principal, and a client secret.
+- [`examples/complete`](./examples/complete) - the fuller surface: a client app and a resource-API app composed together, with roles, scopes, federated credentials, a certificate, and the Graph shortcut.
+
+## Developing
+
+Local work needs **PowerShell 7+** and **[`just`](https://github.com/casey/just)**, because the recipes
+wrap the [LibreDevOpsHelpers](https://www.powershellgallery.com/packages/LibreDevOpsHelpers)
+PowerShell module (the same engine the `libre-devops/terraform-azure` action runs in CI). Install
+just with `brew install just`, or `uv tool add rust-just` then `uv run just <recipe>`.
+
+Run `just` to list recipes: `just update-ldo-pwsh` (install or force-update LibreDevOpsHelpers from
+PSGallery), `just validate`, `just scan` (Trivy only), `just pwsh-analyze` (PSScriptAnalyzer only),
+`just plan`, `just apply`, `just destroy`, `just e2e`, `just test`, and `just docs` (the
+plan/apply/destroy recipes mirror the action, including the storage firewall dance; `just e2e`
+applies an example then always destroys it, defaulting to `minimal`, so nothing is left running).
+Releasing is also `just`:
+`just increment-release [patch|minor|major]` bumps, tags, and publishes a GitHub release, and the
+Terraform Registry picks up the tag.
+
+## Security scan exceptions
+
+This module is scanned with [Trivy](https://github.com/aquasecurity/trivy); HIGH and CRITICAL
+findings fail the build. Any waiver is a deliberate, reviewed decision, never a way to quiet a
+finding that should be fixed. Waivers live in [`.trivyignore.yaml`](./.trivyignore.yaml) (the
+machine-applied source of truth, passed to Trivy with `--ignorefile`) and are mirrored in the table
+below so the reason is auditable.
+
+| Trivy ID | Resource | Finding | Justification |
+|----------|----------|---------|---------------|
+| _None_   |          |         |               |
+
+To add an exception: add an entry to `.trivyignore.yaml` (`id`, optional `paths` to scope it, and a
+`statement` recording why), then add a matching row here. Where the finding is out of this module's
+scope, point the justification at the Libre DevOps module that does address it (for example the
+private-endpoint module). Both the file and this table are reviewed in the pull request.
+
+## Reference
+
+The Requirements, Providers, Inputs, Outputs, and Resources below are generated by `terraform-docs`.
+
+<!-- BEGIN_TF_DOCS -->
 ## Requirements
 
-No requirements.
+| Name | Version |
+|------|---------|
+| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.9.0, < 2.0.0 |
+| <a name="requirement_azuread"></a> [azuread](#requirement\_azuread) | >= 3.0.0, < 4.0.0 |
+| <a name="requirement_random"></a> [random](#requirement\_random) | >= 3.5.0, < 4.0.0 |
 
 ## Providers
 
 | Name | Version |
 |------|---------|
-| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | n/a |
-| <a name="provider_azurerm"></a> [azurerm](#provider\_azurerm) | n/a |
+| <a name="provider_azuread"></a> [azuread](#provider\_azuread) | >= 3.0.0, < 4.0.0 |
+| <a name="provider_random"></a> [random](#provider\_random) | >= 3.5.0, < 4.0.0 |
 
 ## Modules
 
@@ -201,44 +135,56 @@ No modules.
 
 | Name | Type |
 |------|------|
-| [azuread_application.spn](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application) | resource |
-| [azuread_application_federated_identity_credential.federated_cred](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_federated_identity_credential) | resource |
-| [azuread_application_password.client_secret](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_password) | resource |
-| [azuread_service_principal.enterprise_app](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/service_principal) | resource |
-| [azuread_service_principal_password.client_secret](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/service_principal_password) | resource |
-| [azurerm_key_vault_secret.spn_kv_secret](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/key_vault_secret) | resource |
+| [azuread_app_role_assignment.graph](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/app_role_assignment) | resource |
+| [azuread_app_role_assignment.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/app_role_assignment) | resource |
+| [azuread_application_api_access.graph](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_api_access) | resource |
+| [azuread_application_api_access.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_api_access) | resource |
+| [azuread_application_app_role.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_app_role) | resource |
+| [azuread_application_certificate.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_certificate) | resource |
+| [azuread_application_fallback_public_client.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_fallback_public_client) | resource |
+| [azuread_application_federated_identity_credential.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_federated_identity_credential) | resource |
+| [azuread_application_flexible_federated_identity_credential.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_flexible_federated_identity_credential) | resource |
+| [azuread_application_identifier_uri.default](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_identifier_uri) | resource |
+| [azuread_application_identifier_uri.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_identifier_uri) | resource |
+| [azuread_application_known_clients.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_known_clients) | resource |
+| [azuread_application_optional_claims.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_optional_claims) | resource |
+| [azuread_application_owner.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_owner) | resource |
+| [azuread_application_password.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_password) | resource |
+| [azuread_application_permission_scope.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_permission_scope) | resource |
+| [azuread_application_pre_authorized.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_pre_authorized) | resource |
+| [azuread_application_redirect_uris.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_redirect_uris) | resource |
+| [azuread_application_registration.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/application_registration) | resource |
+| [azuread_service_principal.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/service_principal) | resource |
+| [azuread_service_principal_delegated_permission_grant.graph](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/service_principal_delegated_permission_grant) | resource |
+| [azuread_service_principal_delegated_permission_grant.this](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/resources/service_principal_delegated_permission_grant) | resource |
+| [random_uuid.app_role](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) | resource |
+| [random_uuid.permission_scope](https://registry.terraform.io/providers/hashicorp/random/latest/docs/resources/uuid) | resource |
+| [azuread_application_published_app_ids.well_known](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/application_published_app_ids) | data source |
 | [azuread_client_config.current](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/client_config) | data source |
+| [azuread_service_principal.msgraph](https://registry.terraform.io/providers/hashicorp/azuread/latest/docs/data-sources/service_principal) | data source |
 
 ## Inputs
 
 | Name | Description | Type | Default | Required |
 |------|-------------|------|---------|:--------:|
-| <a name="input_spns"></a> [spns](#input\_spns) | The list of SPNs to be made | <pre>list(object({<br/>    spn_name                            = string<br/>    identifier_uris                     = optional(list(string), [])<br/>    create_corresponding_enterprise_app = optional(bool, true)<br/>    create_federated_credential         = optional(bool, false)<br/>    create_client_secret                = optional(bool, false)<br/>    federated_credential_display_name   = optional(string)<br/>    federated_credential_description    = optional(string)<br/>    federated_credential_audiences      = optional(list(string))<br/>    federated_credential_issuer         = optional(string)<br/>    federated_credential_subject        = optional(string)<br/>    client_secret_display_name          = optional(string)<br/>    client_secret_start_date            = optional(string)<br/>    client_secret_end_date              = optional(string)<br/>    attempt_put_spn_secret_in_kv        = optional(bool, false)<br/>    key_vault_id                        = optional(string)<br/>    description                         = optional(string)<br/>    device_only_auth_enabled            = optional(bool, false)<br/>    fallback_public_client_enabled      = optional(bool, false)<br/>    group_membership_claims             = optional(list(string))<br/>    logo_image                          = optional(string)<br/>    marketing_url                       = optional(string)<br/>    notes                               = optional(string)<br/>    oauth2_post_response_required       = optional(bool, false)<br/>    owners                              = optional(list(string))<br/>    prevent_duplicate_names             = optional(bool, false)<br/>    privacy_statement_url               = optional(string)<br/>    required_resource_access = optional(list(object({<br/>      resource_app_id = string<br/>      resource_access = list(object({<br/>        id   = string<br/>        type = string<br/>      }))<br/>    })))<br/>    service_management_reference = optional(string)<br/>    sign_in_audience             = optional(string)<br/>    single_page_application = optional(object({<br/>      redirect_uris = list(string)<br/>    }))<br/>    support_url          = optional(string)<br/>    tags                 = optional(list(string))<br/>    template_id          = optional(string)<br/>    terms_of_service_url = optional(string)<br/>    web = optional(object({<br/>      redirect_uris = list(string)<br/>      logout_url    = optional(string)<br/>      homepage_url  = optional(string)<br/>      implicit_grant = optional(object({<br/>        access_token_issuance_enabled = bool<br/>        id_token_issuance_enabled     = bool<br/><br/>      }))<br/>    }))<br/>    api = optional(object({<br/>      known_client_applications = list(string)<br/>      mapped_claims_enabled     = optional(bool, false)<br/>      oauth2_permission_scope = optional(list(object({<br/>        admin_consent_description  = string<br/>        admin_consent_display_name = string<br/>        id                         = string<br/>        type                       = optional(string, "User")<br/>        user_consent_description   = optional(string)<br/>        user_consent_display_name  = optional(string)<br/>        value                      = optional(string)<br/>        enabled                    = optional(bool, true)<br/>      })))<br/>      requested_access_token_version = optional(number, 1)<br/>    }))<br/>    app_role = optional(list(object({<br/>      allowed_member_types = list(string)<br/>      description          = string<br/>      display_name         = string<br/>      id                   = string<br/>      value                = optional(string)<br/>      enabled              = optional(bool, true)<br/>    })))<br/>    feature_tags = optional(object({<br/>      custom_single_sign_on = optional(bool, false)<br/>      enterprise            = optional(bool, false)<br/>      gallery               = optional(bool, false)<br/>      hide                  = optional(bool, false)<br/>    }))<br/>    optional_claims = optional(object({<br/>      access_token = list(object({<br/>        name                  = string<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>        source                = optional(string)<br/>      }))<br/>      id_token = list(object({<br/>        name                  = string<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>        source                = optional(string)<br/>      }))<br/>      saml2_token = list(object({<br/>        name                  = string<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>        source                = optional(string)<br/>      }))<br/>    }))<br/>  }))</pre> | n/a | yes |
+| <a name="input_service_principals"></a> [service\_principals](#input\_service\_principals) | Map of service principals to create, keyed by a stable logical name (the key is used as the<br/>default application display name and to build the flattened keys of every child resource, so<br/>keep it unique and meaningful). Each entry drives an application registration<br/>(azuread\_application\_registration) plus, optionally, a service principal and the full set of<br/>credentials, published roles/scopes, requested API permissions, owners and admin consent.<br/><br/>The map(object) shape keeps callers declarative: name a service principal once and hang all of<br/>its configuration off that key. Everything except display\_name is optional so the smallest call<br/>is a single key with an empty object. | <pre>map(object({<br/>    # ---- Application registration core (azuread_application_registration) ----<br/>    display_name                           = optional(string)<br/>    description                            = optional(string)<br/>    sign_in_audience                       = optional(string, "AzureADMyOrg")<br/>    group_membership_claims                = optional(list(string))<br/>    homepage_url                           = optional(string)<br/>    logout_url                             = optional(string)<br/>    marketing_url                          = optional(string)<br/>    notes                                  = optional(string)<br/>    privacy_statement_url                  = optional(string)<br/>    support_url                            = optional(string)<br/>    terms_of_service_url                   = optional(string)<br/>    service_management_reference           = optional(string)<br/>    requested_access_token_version         = optional(number, 2)<br/>    implicit_access_token_issuance_enabled = optional(bool)<br/>    implicit_id_token_issuance_enabled     = optional(bool)<br/><br/>    # ---- Fallback public client (azuread_application_fallback_public_client) ----<br/>    # Leave null to let Azure decide (recommended). Set true/false to pin it.<br/>    fallback_public_client_enabled = optional(bool)<br/><br/>    # ---- Identifier URIs (azuread_application_identifier_uri, one resource per URI) ----<br/>    # Custom identifier URIs must sit on a verified publisher domain (or be the api://{clientId}<br/>    # form). Set default_identifier_uri to have the module mint api://{client_id} for you, which<br/>    # Azure always accepts because the application inherently owns its own client id.<br/>    identifier_uris        = optional(set(string), [])<br/>    default_identifier_uri = optional(bool, false)<br/><br/>    # ---- Redirect URIs (azuread_application_redirect_uris, one resource per type) ----<br/>    # Keyed by URI type: "Web", "SPA" or "PublicClient".<br/>    redirect_uris = optional(map(set(string)), {})<br/><br/>    # ---- Known client applications (azuread_application_known_clients) ----<br/>    known_client_ids = optional(set(string), [])<br/><br/>    # ---- Owners of the application registration (azuread_application_owner, one per) ----<br/>    owners = optional(set(string), [])<br/><br/>    # ---- Optional claims (azuread_application_optional_claims) ----<br/>    optional_claims = optional(object({<br/>      access_token = optional(list(object({<br/>        name                  = string<br/>        source                = optional(string)<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>      })), [])<br/>      id_token = optional(list(object({<br/>        name                  = string<br/>        source                = optional(string)<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>      })), [])<br/>      saml2_token = optional(list(object({<br/>        name                  = string<br/>        source                = optional(string)<br/>        essential             = optional(bool)<br/>        additional_properties = optional(list(string))<br/>      })), [])<br/>    }))<br/><br/>    # ---- App roles this application PUBLISHES (azuread_application_app_role) ----<br/>    # Keyed by a logical name. role_id is optional: when omitted a stable random UUID is generated<br/>    # and kept in state, so callers declare roles by intent, not by hand-minted GUIDs.<br/>    app_roles = optional(map(object({<br/>      allowed_member_types = list(string)<br/>      description          = string<br/>      display_name         = string<br/>      value                = optional(string)<br/>      role_id              = optional(string)<br/>    })), {})<br/><br/>    # ---- OAuth2 permission scopes this application PUBLISHES (azuread_application_permission_scope) ----<br/>    permission_scopes = optional(map(object({<br/>      admin_consent_description  = string<br/>      admin_consent_display_name = string<br/>      value                      = string<br/>      type                       = optional(string, "User")<br/>      user_consent_description   = optional(string)<br/>      user_consent_display_name  = optional(string)<br/>      scope_id                   = optional(string)<br/>    })), {})<br/><br/>    # ---- Pre-authorized client applications (azuread_application_pre_authorized) ----<br/>    pre_authorized_applications = optional(map(object({<br/>      authorized_client_id = string<br/>      permission_ids       = list(string)<br/>    })), {})<br/><br/>    # ---- API permissions this application REQUESTS, per resource API (azuread_application_api_access) ----<br/>    # Keyed by a logical name. api_client_id is the resource API's client id (for Microsoft Graph<br/>    # prefer the microsoft_graph_* shortcuts below). At least one of role_ids/scope_ids per entry.<br/>    api_permissions = optional(map(object({<br/>      api_client_id = string<br/>      role_ids      = optional(set(string), [])<br/>      scope_ids     = optional(set(string), [])<br/>    })), {})<br/><br/>    # ---- Microsoft Graph shortcut ----<br/>    # Declare Graph permissions by their published NAME (for example "User.Read.All"). The module<br/>    # resolves the ids against the tenant's Microsoft Graph service principal, requests them on the<br/>    # application, and (when microsoft_graph_grant_admin_consent is true and a service principal is<br/>    # created) grants tenant-wide admin consent: application roles via azuread_app_role_assignment,<br/>    # delegated scopes via azuread_service_principal_delegated_permission_grant.<br/>    microsoft_graph_application_roles   = optional(set(string), [])<br/>    microsoft_graph_delegated_scopes    = optional(set(string), [])<br/>    microsoft_graph_grant_admin_consent = optional(bool, true)<br/><br/>    # ---- Generic admin consent escape hatches (any resource API) ----<br/>    # Grant an app role (application permission) held by any resource service principal TO this<br/>    # service principal (azuread_app_role_assignment). Use for non-Graph APIs, or the Graph<br/>    # default role id 00000000-0000-0000-0000-000000000000.<br/>    app_role_assignments = optional(map(object({<br/>      resource_object_id = string<br/>      app_role_id        = string<br/>    })), {})<br/><br/>    # Grant delegated permissions (azuread_service_principal_delegated_permission_grant). Omit<br/>    # user_object_id to consent for all users (admin consent).<br/>    delegated_permission_grants = optional(map(object({<br/>      resource_service_principal_object_id = string<br/>      claim_values                         = set(string)<br/>      user_object_id                       = optional(string)<br/>    })), {})<br/><br/>    # ---- Service principal (azuread_service_principal) ----<br/>    create_service_principal        = optional(bool, true)<br/>    account_enabled                 = optional(bool, true)<br/>    app_role_assignment_required    = optional(bool, false)<br/>    service_principal_description   = optional(string)<br/>    service_principal_owners        = optional(set(string), [])<br/>    alternative_names               = optional(set(string))<br/>    login_url                       = optional(string)<br/>    service_principal_notes         = optional(string)<br/>    notification_email_addresses    = optional(set(string))<br/>    preferred_single_sign_on_mode   = optional(string)<br/>    saml_single_sign_on_relay_state = optional(string)<br/>    service_principal_tags          = optional(set(string))<br/>    use_existing                    = optional(bool)<br/>    feature_tags = optional(object({<br/>      custom_single_sign_on = optional(bool, false)<br/>      enterprise            = optional(bool, false)<br/>      gallery               = optional(bool, false)<br/>      hide                  = optional(bool, false)<br/>    }))<br/><br/>    # ---- Client secrets (azuread_application_password, one per key) ----<br/>    client_secrets = optional(map(object({<br/>      display_name        = optional(string)<br/>      start_date          = optional(string)<br/>      end_date            = optional(string)<br/>      end_date_relative   = optional(string)<br/>      rotate_when_changed = optional(map(string))<br/>    })), {})<br/><br/>    # ---- Client certificates (azuread_application_certificate, one per key) ----<br/>    client_certificates = optional(map(object({<br/>      value             = string<br/>      type              = optional(string, "AsymmetricX509Cert")<br/>      encoding          = optional(string, "pem")<br/>      start_date        = optional(string)<br/>      end_date          = optional(string)<br/>      end_date_relative = optional(string)<br/>      key_id            = optional(string)<br/>    })), {})<br/><br/>    # ---- Federated identity credentials (azuread_application_federated_identity_credential) ----<br/>    federated_credentials = optional(map(object({<br/>      display_name = string<br/>      issuer       = string<br/>      subject      = string<br/>      audiences    = optional(set(string), ["api://AzureADTokenExchange"])<br/>      description  = optional(string)<br/>    })), {})<br/><br/>    # ---- Flexible federated identity credentials (azuread_application_flexible_federated_identity_credential) ----<br/>    flexible_federated_credentials = optional(map(object({<br/>      display_name               = string<br/>      issuer                     = string<br/>      claims_matching_expression = string<br/>      audience                   = optional(string, "api://AzureADTokenExchange")<br/>      description                = optional(string)<br/>    })), {})<br/>  }))</pre> | `{}` | no |
 
 ## Outputs
 
 | Name | Description |
 |------|-------------|
-| <a name="output_app_role_ids"></a> [app\_role\_ids](#output\_app\_role\_ids) | A mapping of application role display names to their corresponding IDs. This is useful for referencing app roles in other resources within your Terraform configuration. |
-| <a name="output_app_roles"></a> [app\_roles](#output\_app\_roles) | Lists app roles published by the associated application. |
-| <a name="output_application_tenant_id"></a> [application\_tenant\_id](#output\_application\_tenant\_id) | The tenant ID where the associated application is registered. |
-| <a name="output_client_id"></a> [client\_id](#output\_client\_id) | The Client ID for each application. This is a unique identifier for the application in Azure AD and is used in various authentication and authorization flows. |
-| <a name="output_client_secret_secret_id"></a> [client\_secret\_secret\_id](#output\_client\_secret\_secret\_id) | The id of the secret generated |
-| <a name="output_client_secret_value"></a> [client\_secret\_value](#output\_client\_secret\_value) | The secret of the client secret created |
-| <a name="output_display_name"></a> [display\_name](#output\_display\_name) | The display name of the application associated with this service principal. |
-| <a name="output_enterprise_app_application_id"></a> [enterprise\_app\_application\_id](#output\_enterprise\_app\_application\_id) | The application ID  of the enterprise app. |
-| <a name="output_enterprise_app_object_id"></a> [enterprise\_app\_object\_id](#output\_enterprise\_app\_object\_id) | The object ID of the service principal. |
-| <a name="output_federated_credential_id"></a> [federated\_credential\_id](#output\_federated\_credential\_id) | The credential ID of the federated credential |
-| <a name="output_homepage_url"></a> [homepage\_url](#output\_homepage\_url) | Home page or landing page of the associated application. |
-| <a name="output_id"></a> [id](#output\_id) | The Terraform resource ID for each application. This ID is unique to Terraform and can be used to reference the application resource in other parts of your Terraform configuration. |
-| <a name="output_logout_url"></a> [logout\_url](#output\_logout\_url) | The URL that will be used by Microsoft's authorization service to log out an user. |
-| <a name="output_oauth2_permission_scope_ids"></a> [oauth2\_permission\_scope\_ids](#output\_oauth2\_permission\_scope\_ids) | A mapping of OAuth2.0 permission scope values to scope IDs, as exposed by the associated application. |
-| <a name="output_oauth2_permission_scopes"></a> [oauth2\_permission\_scopes](#output\_oauth2\_permission\_scopes) | Lists OAuth 2.0 delegated permission scopes exposed by the associated application. |
-| <a name="output_redirect_uris"></a> [redirect\_uris](#output\_redirect\_uris) | Lists URLs where user tokens are sent for sign-in with the associated application. |
-| <a name="output_saml_metadata_url"></a> [saml\_metadata\_url](#output\_saml\_metadata\_url) | The URL where the service exposes SAML metadata for federation. |
-| <a name="output_service_principal_names"></a> [service\_principal\_names](#output\_service\_principal\_names) | Lists identifier URI(s), copied over from the associated application. |
-| <a name="output_sign_in_audience"></a> [sign\_in\_audience](#output\_sign\_in\_audience) | The Microsoft account types that are supported for the associated application. |
-| <a name="output_spn_app_role_ids"></a> [spn\_app\_role\_ids](#output\_spn\_app\_role\_ids) | A mapping of app role values to app role IDs, as published by the associated application, intended to be useful when referencing app roles in other resources in your configuration. |
-| <a name="output_spn_client_secret_secret_id"></a> [spn\_client\_secret\_secret\_id](#output\_spn\_client\_secret\_secret\_id) | The id of the secret generated for the service principal resource |
-| <a name="output_spn_client_secret_value"></a> [spn\_client\_secret\_value](#output\_spn\_client\_secret\_value) | The secret of the client secret created for the service principal resource |
-| <a name="output_type"></a> [type](#output\_type) | Identifies whether the service principal represents an application or a managed identity, indicating the principal's purpose and capabilities. |
+| <a name="output_application_ids"></a> [application\_ids](#output\_application\_ids) | Map of service principal key to the application registration resource id (the /applications/{objectId} form used as application\_id by child resources). |
+| <a name="output_application_ids_zipmap"></a> [application\_ids\_zipmap](#output\_application\_ids\_zipmap) | Map of service principal key to an object of its name and application id, for easy composition (matches the estate zipmap convention). |
+| <a name="output_application_object_ids"></a> [application\_object\_ids](#output\_application\_object\_ids) | Map of service principal key to the application object id. |
+| <a name="output_applications"></a> [applications](#output\_applications) | Map of service principal key to the full set of useful application registration attributes. |
+| <a name="output_client_certificate_key_ids"></a> [client\_certificate\_key\_ids](#output\_client\_certificate\_key\_ids) | Map of "<spn>\|<certificate>" key to the certificate key id. |
+| <a name="output_client_ids"></a> [client\_ids](#output\_client\_ids) | Map of service principal key to the application client id (also called the application id / appId). |
+| <a name="output_client_secret_values"></a> [client\_secret\_values](#output\_client\_secret\_values) | Map of "<spn>\|<secret>" key to just the generated secret value. |
+| <a name="output_client_secrets"></a> [client\_secrets](#output\_client\_secrets) | Map of "<spn>\|<secret>" key to the secret key id, value and display name. Store these in a secret manager; they are only shown at creation. |
+| <a name="output_federated_credential_ids"></a> [federated\_credential\_ids](#output\_federated\_credential\_ids) | Map of "<spn>\|<credential>" key to the federated identity credential id. |
+| <a name="output_flexible_federated_credential_ids"></a> [flexible\_federated\_credential\_ids](#output\_flexible\_federated\_credential\_ids) | Map of "<spn>\|<credential>" key to the flexible federated identity credential id. |
+| <a name="output_published_app_role_ids"></a> [published\_app\_role\_ids](#output\_published\_app\_role\_ids) | Map of service principal key to a map of app role logical name to its resolved role id. |
+| <a name="output_published_permission_scope_ids"></a> [published\_permission\_scope\_ids](#output\_published\_permission\_scope\_ids) | Map of service principal key to a map of permission scope logical name to its resolved scope id. |
+| <a name="output_service_principal_object_ids"></a> [service\_principal\_object\_ids](#output\_service\_principal\_object\_ids) | Map of service principal key to the service principal object id (the value to use in role assignments and group memberships). |
+| <a name="output_service_principals"></a> [service\_principals](#output\_service\_principals) | Map of service principal key to the full set of useful service principal attributes. |
+<!-- END_TF_DOCS -->

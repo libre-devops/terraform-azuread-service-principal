@@ -1,117 +1,103 @@
-output "app_role_ids" {
-  value       = { for k, app in azuread_application.spn : k => { for role in app.app_role : role.display_name => role.id } }
-  description = "A mapping of application role display names to their corresponding IDs. This is useful for referencing app roles in other resources within your Terraform configuration."
+output "application_ids" {
+  description = "Map of service principal key to the application registration resource id (the /applications/{objectId} form used as application_id by child resources)."
+  value       = { for k, v in azuread_application_registration.this : k => v.id }
 }
 
-output "app_roles" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.app_roles }
-  description = "Lists app roles published by the associated application."
+output "application_ids_zipmap" {
+  description = "Map of service principal key to an object of its name and application id, for easy composition (matches the estate zipmap convention)."
+  value       = { for k, v in azuread_application_registration.this : k => { name = v.display_name, id = v.id } }
 }
 
-output "application_tenant_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.application_tenant_id }
-  description = "The tenant ID where the associated application is registered."
+output "application_object_ids" {
+  description = "Map of service principal key to the application object id."
+  value       = { for k, v in azuread_application_registration.this : k => v.object_id }
 }
 
-output "client_id" {
-  value       = { for k, app in azuread_application.spn : k => app.client_id }
-  description = "The Client ID for each application. This is a unique identifier for the application in Azure AD and is used in various authentication and authorization flows."
-}
-
-output "client_secret_secret_id" {
-  value       = { for k, sp in azuread_application_password.client_secret : k => sp.key_id }
-  description = "The id of the secret generated"
-}
-
-output "client_secret_value" {
-  value       = { for k, sp in azuread_application_password.client_secret : k => sp.value }
-  description = "The secret of the client secret created"
-}
-
-output "display_name" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.display_name }
-  description = "The display name of the application associated with this service principal."
-}
-
-output "enterprise_app_application_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.object_id }
-  description = "The application ID  of the enterprise app."
-}
-
-output "enterprise_app_object_id" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.object_id }
-  description = "The object ID of the service principal."
-}
-
-output "federated_credential_id" {
-  value       = { for k, sp in azuread_application_federated_identity_credential.federated_cred : k => sp.credential_id }
-  description = "The credential ID of the federated credential"
-}
-
-output "homepage_url" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.homepage_url }
-  description = "Home page or landing page of the associated application."
-}
-
-output "id" {
-  value       = { for k, app in azuread_application.spn : k => app.id }
-  description = "The Terraform resource ID for each application. This ID is unique to Terraform and can be used to reference the application resource in other parts of your Terraform configuration."
-}
-
-output "logout_url" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.logout_url }
-  description = "The URL that will be used by Microsoft's authorization service to log out an user."
-}
-
-output "oauth2_permission_scope_ids" {
+output "applications" {
+  description = "Map of service principal key to the full set of useful application registration attributes."
   value = {
-    for k, sp in azuread_service_principal.enterprise_app : k =>
-    { for scope in sp.oauth2_permission_scopes : scope.value => scope.id }
+    for k, v in azuread_application_registration.this : k => {
+      id                    = v.id
+      object_id             = v.object_id
+      client_id             = v.client_id
+      display_name          = v.display_name
+      publisher_domain      = v.publisher_domain
+      disabled_by_microsoft = v.disabled_by_microsoft
+    }
   }
-  description = "A mapping of OAuth2.0 permission scope values to scope IDs, as exposed by the associated application."
 }
 
-output "oauth2_permission_scopes" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.oauth2_permission_scopes }
-  description = "Lists OAuth 2.0 delegated permission scopes exposed by the associated application."
+output "client_certificate_key_ids" {
+  description = "Map of \"<spn>|<certificate>\" key to the certificate key id."
+  value       = { for k, v in azuread_application_certificate.this : k => v.key_id }
 }
 
-output "redirect_uris" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.redirect_uris }
-  description = "Lists URLs where user tokens are sent for sign-in with the associated application."
+output "client_ids" {
+  description = "Map of service principal key to the application client id (also called the application id / appId)."
+  value       = { for k, v in azuread_application_registration.this : k => v.client_id }
 }
 
-output "saml_metadata_url" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.saml_metadata_url }
-  description = "The URL where the service exposes SAML metadata for federation."
+output "client_secret_values" {
+  description = "Map of \"<spn>|<secret>\" key to just the generated secret value."
+  sensitive   = true
+  value       = { for k, v in azuread_application_password.this : k => v.value }
 }
 
-output "service_principal_names" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.service_principal_names }
-  description = "Lists identifier URI(s), copied over from the associated application."
+output "client_secrets" {
+  description = "Map of \"<spn>|<secret>\" key to the secret key id, value and display name. Store these in a secret manager; they are only shown at creation."
+  sensitive   = true
+  value = {
+    for k, v in azuread_application_password.this : k => {
+      key_id       = v.key_id
+      value        = v.value
+      display_name = v.display_name
+    }
+  }
 }
 
-output "sign_in_audience" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.sign_in_audience }
-  description = "The Microsoft account types that are supported for the associated application."
+output "federated_credential_ids" {
+  description = "Map of \"<spn>|<credential>\" key to the federated identity credential id."
+  value       = { for k, v in azuread_application_federated_identity_credential.this : k => v.credential_id }
 }
 
-output "spn_app_role_ids" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.app_role_ids }
-  description = "A mapping of app role values to app role IDs, as published by the associated application, intended to be useful when referencing app roles in other resources in your configuration."
+output "flexible_federated_credential_ids" {
+  description = "Map of \"<spn>|<credential>\" key to the flexible federated identity credential id."
+  value       = { for k, v in azuread_application_flexible_federated_identity_credential.this : k => v.credential_id }
 }
 
-output "spn_client_secret_secret_id" {
-  value       = { for k, sp in azuread_service_principal_password.client_secret : k => sp.key_id }
-  description = "The id of the secret generated for the service principal resource"
+output "published_app_role_ids" {
+  description = "Map of service principal key to a map of app role logical name to its resolved role id."
+  value = {
+    for k, v in var.service_principals : k => {
+      for rk in keys(v.app_roles) : rk => azuread_application_app_role.this["${k}|${rk}"].role_id
+    }
+  }
 }
 
-output "spn_client_secret_value" {
-  value       = { for k, sp in azuread_service_principal_password.client_secret : k => sp.value }
-  description = "The secret of the client secret created for the service principal resource"
+output "published_permission_scope_ids" {
+  description = "Map of service principal key to a map of permission scope logical name to its resolved scope id."
+  value = {
+    for k, v in var.service_principals : k => {
+      for sk in keys(v.permission_scopes) : sk => azuread_application_permission_scope.this["${k}|${sk}"].scope_id
+    }
+  }
 }
 
-output "type" {
-  value       = { for k, sp in azuread_service_principal.enterprise_app : k => sp.type }
-  description = "Identifies whether the service principal represents an application or a managed identity, indicating the principal's purpose and capabilities."
+output "service_principal_object_ids" {
+  description = "Map of service principal key to the service principal object id (the value to use in role assignments and group memberships)."
+  value       = { for k, v in azuread_service_principal.this : k => v.object_id }
+}
+
+output "service_principals" {
+  description = "Map of service principal key to the full set of useful service principal attributes."
+  value = {
+    for k, v in azuread_service_principal.this : k => {
+      object_id                   = v.object_id
+      display_name                = v.display_name
+      type                        = v.type
+      application_tenant_id       = v.application_tenant_id
+      app_role_ids                = v.app_role_ids
+      oauth2_permission_scope_ids = v.oauth2_permission_scope_ids
+    }
+  }
 }
