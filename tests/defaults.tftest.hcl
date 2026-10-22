@@ -178,7 +178,16 @@ run "feature_tags_and_tags_are_mutually_exclusive" {
 # the provider: azuread 3.x ignores it for passwords and errors on it for a certificate with a
 # start_date.
 run "relative_end_dates_are_resolved_from_a_fixed_anchor" {
-  command = plan
+  # Applied against the mocks, so the anchor is known (overrides during plan need Terraform 1.11).
+  command = apply
+
+  override_resource {
+    target = azuread_application_registration.this
+    values = {
+      id        = "/applications/00000000-0000-0000-0000-0000000000a1"
+      client_id = "00000000-0000-0000-0000-0000000000a2"
+    }
+  }
 
   variables {
     service_principals = {
@@ -195,15 +204,13 @@ run "relative_end_dates_are_resolved_from_a_fixed_anchor" {
   }
 
   override_resource {
-    target          = time_static.client_secret
-    override_during = plan
-    values          = { rfc3339 = "2026-10-22T00:00:00Z" }
+    target = time_static.client_secret
+    values = { rfc3339 = "2026-10-22T00:00:00Z" }
   }
 
   override_resource {
-    target          = time_static.client_certificate
-    override_during = plan
-    values          = { rfc3339 = "2026-10-22T00:00:00Z" }
+    target = time_static.client_certificate
+    values = { rfc3339 = "2026-10-22T00:00:00Z" }
   }
 
   assert {
