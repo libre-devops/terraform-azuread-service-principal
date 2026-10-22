@@ -245,12 +245,17 @@ resource "azuread_application_permission_scope" "this" {
   value                      = each.value.value
 }
 
+# permission_ids usually name scopes this module creates, by fixed ids from the caller, so nothing in
+# the arguments makes Terraform wait for them; Entra ID refuses a pre-authorisation naming a scope
+# the application does not have yet (InvalidValue ... cannot be found in the AppPermissions sets).
 resource "azuread_application_pre_authorized" "this" {
   for_each = local.pre_authorized
 
   application_id       = azuread_application_registration.this[each.value.spn].id
   authorized_client_id = each.value.authorized_client_id
   permission_ids       = each.value.permission_ids
+
+  depends_on = [azuread_application_permission_scope.this]
 }
 
 resource "azuread_application_api_access" "this" {
