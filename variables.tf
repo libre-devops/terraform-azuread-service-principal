@@ -158,6 +158,10 @@ variable "service_principals" {
     }))
 
     # ---- Client secrets (azuread_application_password, one per key) ----
+    # end_date_relative (a duration such as "2160h") is turned into end_date here, from start_date
+    # or the moment the credential was first planned (a time_static anchor, re-taken when
+    # rotate_when_changed changes): azuread 3.x ignores end_date_relative for passwords, which
+    # left every secret on Graph's default lifetime.
     client_secrets = optional(map(object({
       display_name        = optional(string)
       start_date          = optional(string)
@@ -167,6 +171,8 @@ variable "service_principals" {
     })), {})
 
     # ---- Client certificates (azuread_application_certificate, one per key) ----
+    # end_date_relative is turned into end_date the same way (the anchor is re-taken when the
+    # certificate changes): azuread 3.x errors on end_date_relative alongside start_date.
     client_certificates = optional(map(object({
       value             = string
       type              = optional(string, "AsymmetricX509Cert")
@@ -199,6 +205,16 @@ variable "service_principals" {
   default = {}
 
   # sign_in_audience must be one of the supported values.
+  validation {
+    condition = alltrue(flatten([
+      for v in values(var.service_principals) : [
+        for credential in concat(values(coalesce(v.client_secrets, {})), values(coalesce(v.client_certificates, {}))) :
+        credential.end_date == null || credential.end_date_relative == null
+      ]
+    ]))
+    error_message = "A client secret or certificate takes end_date or end_date_relative, not both."
+  }
+
   validation {
     condition = alltrue([
       for k, v in var.service_principals :

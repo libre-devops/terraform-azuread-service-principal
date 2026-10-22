@@ -309,28 +309,47 @@ resource "azuread_service_principal" "this" {
   }
 }
 
+# The moment a credential with end_date_relative was first planned, so its end date stays put from
+# plan to plan (end_date forces a new credential). Re-taken when a secret's rotate_when_changed
+# changes or a certificate's value does, so a rotated credential gets its full life.
+resource "time_static" "client_secret" {
+  for_each = { for key, secret in local.client_secrets : key => secret if secret.end_date == null && secret.end_date_relative != null }
+
+  triggers = each.value.rotate_when_changed
+}
+
+resource "time_static" "client_certificate" {
+  for_each = { for key, certificate in local.client_certificates : key => certificate if certificate.end_date == null && certificate.end_date_relative != null }
+
+  triggers = { value = sha256(each.value.value) }
+}
+
 resource "azuread_application_password" "this" {
   for_each = local.client_secrets
 
-  application_id      = azuread_application_registration.this[each.value.spn].id
-  display_name        = each.value.display_name
-  start_date          = each.value.start_date
-  end_date            = each.value.end_date
-  end_date_relative   = each.value.end_date_relative
+  application_id = azuread_application_registration.this[each.value.spn].id
+  display_name   = each.value.display_name
+  start_date     = each.value.start_date
+  # end_date_relative is resolved here, never passed on: azuread 3.x ignores it for passwords.
+  end_date = each.value.end_date != null || each.value.end_date_relative == null ? each.value.end_date : timeadd(
+    coalesce(each.value.start_date, time_static.client_secret[each.key].rfc3339), each.value.end_date_relative
+  )
   rotate_when_changed = each.value.rotate_when_changed
 }
 
 resource "azuread_application_certificate" "this" {
   for_each = local.client_certificates
 
-  application_id    = azuread_application_registration.this[each.value.spn].id
-  type              = each.value.type
-  value             = each.value.value
-  encoding          = each.value.encoding
-  start_date        = each.value.start_date
-  end_date          = each.value.end_date
-  end_date_relative = each.value.end_date_relative
-  key_id            = each.value.key_id
+  application_id = azuread_application_registration.this[each.value.spn].id
+  type           = each.value.type
+  value          = each.value.value
+  encoding       = each.value.encoding
+  start_date     = each.value.start_date
+  # Resolved here as for passwords: azuread 3.x errors on end_date_relative with a start_date.
+  end_date = each.value.end_date != null || each.value.end_date_relative == null ? each.value.end_date : timeadd(
+    coalesce(each.value.start_date, time_static.client_certificate[each.key].rfc3339), each.value.end_date_relative
+  )
+  key_id = each.value.key_id
 }
 
 resource "azuread_application_federated_identity_credential" "this" {

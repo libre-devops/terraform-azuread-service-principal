@@ -1,4 +1,4 @@
-# Plan-time tests for the module. The azuread and random providers are mocked, so no credentials
+# Plan-time tests for the module. The azuread, random and time providers are mocked, so no credentials
 # and no cloud calls are needed:
 #   terraform init -backend=false && terraform test
 #
@@ -22,6 +22,7 @@ mock_provider "azuread" {
 }
 
 mock_provider "random" {}
+mock_provider "time" {}
 
 variables {
   service_principals = {
@@ -166,6 +167,79 @@ run "feature_tags_and_tags_are_mutually_exclusive" {
       bad = {
         service_principal_tags = ["a"]
         feature_tags           = { enterprise = true }
+      }
+    }
+  }
+
+  expect_failures = [var.service_principals]
+}
+
+# end_date_relative becomes an end_date from a fixed anchor (or start_date), and is never passed to
+# the provider: azuread 3.x ignores it for passwords and errors on it for a certificate with a
+# start_date.
+run "relative_end_dates_are_resolved_from_a_fixed_anchor" {
+  command = plan
+
+  variables {
+    service_principals = {
+      caller = {
+        client_secrets = {
+          rotating = { end_date_relative = "2160h", rotate_when_changed = { round = "1" } }
+          fixed    = { end_date = "2027-01-01T00:00:00Z" }
+        }
+        client_certificates = {
+          dated = { value = "-----BEGIN CERTIFICATE-----\nMIIB\n-----END CERTIFICATE-----", start_date = "2026-11-01T00:00:00Z", end_date_relative = "720h" }
+        }
+      }
+    }
+  }
+
+  override_resource {
+    target          = time_static.client_secret
+    override_during = plan
+    values          = { rfc3339 = "2026-10-22T00:00:00Z" }
+  }
+
+  override_resource {
+    target          = time_static.client_certificate
+    override_during = plan
+    values          = { rfc3339 = "2026-10-22T00:00:00Z" }
+  }
+
+  assert {
+    condition = (
+      azuread_application_password.this["caller|rotating"].end_date == "2027-01-20T00:00:00Z" &&
+      azuread_application_password.this["caller|rotating"].end_date_relative == null
+    )
+    error_message = "A 90 day secret ends 90 days after its anchor, set as end_date."
+  }
+
+  assert {
+    condition     = azuread_application_password.this["caller|fixed"].end_date == "2027-01-01T00:00:00Z" && !contains(keys(time_static.client_secret), "caller|fixed")
+    error_message = "An explicit end_date passes through, with no anchor."
+  }
+
+  assert {
+    condition = (
+      azuread_application_certificate.this["caller|dated"].end_date == "2026-12-01T00:00:00Z" &&
+      azuread_application_certificate.this["caller|dated"].end_date_relative == null
+    )
+    error_message = "A certificate with a start_date ends end_date_relative after it."
+  }
+
+  assert {
+    condition     = time_static.client_secret["caller|rotating"].triggers["round"] == "1"
+    error_message = "The anchor is re-taken when rotate_when_changed changes."
+  }
+}
+
+run "an_end_date_and_a_relative_end_date_conflict" {
+  command = plan
+
+  variables {
+    service_principals = {
+      caller = {
+        client_secrets = { both = { end_date = "2027-01-01T00:00:00Z", end_date_relative = "2160h" } }
       }
     }
   }
